@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weather Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+:root {
+  --background-dark: #121212;
+  --card-dark: rgba(255, 255, 255, 0.05);
+  --border-dark: rgba(255, 255, 255, 0.1);
+  --text-light: #e0e0e0;
+  --text-primary: #8e24aa;
+  --text-secondary: #bdbdbd;
+  --accent-color: #8e24aa;
+  --accent-light: #ab47bc;
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --backdrop-blur: blur(10px);
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--background-dark);
+  color: var(--text-light);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Full-screen weather animation layer (replaces images) */
+#weatherAnimation {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+#weatherAnimation .layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+#weatherAnimation[data-weather="Clear"] .layer-clear,
+#weatherAnimation[data-weather="Clouds"] .layer-clouds,
+#weatherAnimation[data-weather="Rain"] .layer-rain,
+#weatherAnimation[data-weather="Drizzle"] .layer-rain,
+#weatherAnimation[data-weather="Thunderstorm"] .layer-storm,
+#weatherAnimation[data-weather="Snow"] .layer-snow,
+#weatherAnimation[data-weather="Mist"] .layer-fog,
+#weatherAnimation[data-weather="Fog"] .layer-fog,
+#weatherAnimation[data-weather="Haze"] .layer-fog,
+#weatherAnimation[data-weather="default"] .layer-default { opacity: 1; }
+
+/* Sunny: gradient + sun with rays */
+.layer-clear {
+  background: linear-gradient(180deg, #1a237e 0%, #283593 25%, #3949ab 50%, #ffb74d 85%, #ff9800 100%);
+}
+.layer-clear .sun {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff9c4 0%, #ffeb3b 40%, #ffc107 100%);
+  box-shadow: 0 0 60px 20px rgba(255, 235, 59, 0.5), 0 0 100px 40px rgba(255, 193, 7, 0.3);
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: sunPulse 4s ease-in-out infinite;
+}
+.layer-clear .ray {
+  position: absolute;
+  width: 4px;
+  height: 80px;
+  background: linear-gradient(180deg, rgba(255,235,59,0.6) 0%, transparent 100%);
+  top: 12%;
+  left: 50%;
+  transform-origin: 50% 100%;
+  border-radius: 2px;
+}
+.layer-clear .ray:nth-child(2) { transform: translateX(-50%) rotate(0deg); }
+.layer-clear .ray:nth-child(3) { transform: translateX(-50%) rotate(45deg); }
+.layer-clear .ray:nth-child(4) { transform: translateX(-50%) rotate(90deg); }
+.layer-clear .ray:nth-child(5) { transform: translateX(-50%) rotate(135deg); }
+.layer-clear .ray:nth-child(6) { transform: translateX(-50%) rotate(180deg); }
+.layer-clear .ray:nth-child(7) { transform: translateX(-50%) rotate(225deg); }
+.layer-clear .ray:nth-child(8) { transform: translateX(-50%) rotate(270deg); }
+.layer-clear .ray:nth-child(9) { transform: translateX(-50%) rotate(315deg); }
+@keyframes sunPulse { 0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; } 50% { transform: translateX(-50%) scale(1.05); opacity: 0.95; } }
+
+/* Cloudy: gray gradient + moving clouds */
+.layer-clouds {
+  background: linear-gradient(180deg, #37474f 0%, #546e7a 40%, #78909c 70%, #90a4ae 100%);
+}
+.layer-clouds .cloud {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  animation: cloudMove 25s linear infinite;
+}
+.layer-clouds .cloud1 { width: 120px; height: 50px; top: 15%; left: -10%; animation-duration: 30s; animation-delay: 0s; }
+.layer-clouds .cloud2 { width: 90px; height: 40px; top: 25%; left: -5%; animation-duration: 28s; animation-delay: -8s; }
+.layer-clouds .cloud3 { width: 150px; height: 55px; top: 35%; left: -15%; animation-duration: 35s; animation-delay: -15s; }
+.layer-clouds .cloud4 { width: 80px; height: 35px; top: 20%; left: 30%; animation-duration: 22s; animation-delay: -3s; }
+.layer-clouds .cloud5 { width: 110px; height: 45px; top: 45%; left: 10%; animation-duration: 26s; animation-delay: -12s; }
+@keyframes cloudMove { 0% { transform: translateX(0); } 100% { transform: translateX(120vw); } }
+
+/* Rain */
+.layer-rain {
+  background: linear-gradient(180deg, #263238 0%, #37474f 50%, #455a64 100%);
+}
+.layer-rain .rain-drop {
+  position: absolute;
+  width: 2px;
+  height: 20px;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.4));
+  top: -25px;
+  animation: rainFall 0.8s linear infinite;
+}
+.layer-rain .rain-drop:nth-child(5n+1) { left: 5%; animation-delay: 0s; }
+.layer-rain .rain-drop:nth-child(5n+2) { left: 15%; animation-delay: 0.1s; }
+.layer-rain .rain-drop:nth-child(5n+3) { left: 25%; animation-delay: 0.2s; }
+.layer-rain .rain-drop:nth-child(5n+4) { left: 35%; animation-delay: 0.05s; }
+.layer-rain .rain-drop:nth-child(5n+5) { left: 45%; animation-delay: 0.15s; }
+.layer-rain .rain-drop:nth-child(3n+1) { left: 55%; }
+.layer-rain .rain-drop:nth-child(3n+2) { left: 65%; }
+.layer-rain .rain-drop:nth-child(3n+3) { left: 75%; }
+.layer-rain .rain-drop:nth-child(7n+1) { left: 85%; }
+.layer-rain .rain-drop:nth-child(7n+2) { left: 95%; }
+@keyframes rainFall { 0% { transform: translateY(0); } 100% { transform: translateY(100vh); } }
+
+/* Storm: dark + rain + lightning */
+.layer-storm {
+  background: linear-gradient(180deg, #0d1117 0%, #161b22 40%, #21262d 100%);
+}
+.layer-storm .rain-drop {
+  position: absolute;
+  width: 2px;
+  height: 22px;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.35));
+  top: -25px;
+  animation: rainFall 0.6s linear infinite;
+}
+.layer-storm .rain-drop:nth-child(5n+1) { left: 3%; animation-delay: 0s; }
+.layer-storm .rain-drop:nth-child(5n+2) { left: 18%; animation-delay: 0.08s; }
+.layer-storm .rain-drop:nth-child(5n+3) { left: 33%; animation-delay: 0.16s; }
+.layer-storm .rain-drop:nth-child(5n+4) { left: 48%; animation-delay: 0.04s; }
+.layer-storm .rain-drop:nth-child(5n+5) { left: 63%; animation-delay: 0.12s; }
+.layer-storm .rain-drop:nth-child(3n+1) { left: 78%; }
+.layer-storm .rain-drop:nth-child(3n+2) { left: 88%; }
+.layer-storm .rain-drop:nth-child(3n+3) { left: 98%; }
+.layer-storm .lightning {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.15);
+  animation: lightning 3s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes lightning { 0%, 90%, 100% { opacity: 0; } 92% { opacity: 1; } 93% { opacity: 0; } 95% { opacity: 1; } 96% { opacity: 0; } }
+
+/* Snow */
+.layer-snow {
+  background: linear-gradient(180deg, #1a237e 0%, #283593 30%, #3949ab 60%, #5c6bc0 100%);
+}
+.layer-snow .snowflake {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  top: -10px;
+  animation: snowFall 4s linear infinite;
+}
+.layer-snow .snowflake:nth-child(7n+1) { left: 2%; animation-delay: 0s; animation-duration: 3.5s; }
+.layer-snow .snowflake:nth-child(7n+2) { left: 14%; animation-delay: 0.5s; animation-duration: 4.2s; }
+.layer-snow .snowflake:nth-child(7n+3) { left: 26%; animation-delay: 1s; animation-duration: 3.8s; }
+.layer-snow .snowflake:nth-child(7n+4) { left: 38%; animation-delay: 0.2s; animation-duration: 4.5s; }
+.layer-snow .snowflake:nth-child(7n+5) { left: 50%; animation-delay: 0.8s; animation-duration: 3.2s; }
+.layer-snow .snowflake:nth-child(7n+6) { left: 62%; animation-delay: 0.3s; animation-duration: 4s; }
+.layer-snow .snowflake:nth-child(7n+7) { left: 74%; animation-delay: 1.2s; animation-duration: 3.6s; }
+.layer-snow .snowflake:nth-child(11n+1) { left: 86%; }
+.layer-snow .snowflake:nth-child(11n+2) { left: 94%; }
+@keyframes snowFall { 0% { transform: translate(0, 0); } 100% { transform: translate(30px, 100vh); } }
+
+/* Fog / Mist / Haze */
+.layer-fog {
+  background: linear-gradient(180deg, #546e7a 0%, #78909c 40%, #b0bec5 70%, #cfd8dc 100%);
+}
+.layer-fog::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+  animation: fogDrift 8s ease-in-out infinite;
+}
+@keyframes fogDrift { 0% { transform: translateX(-20%); } 100% { transform: translateX(20%); } }
+
+/* Default */
+.layer-default {
+  background: linear-gradient(180deg, #0d1117 0%, #121212 50%, #1a1a2e 100%);
+}
+
+.container {
+  position: relative;
+  z-index: 1;
+  max-width: 960px;
+  padding: 2.5rem;
+  background: var(--card-dark);
+  border-radius: 20px;
+  box-shadow: var(--card-shadow);
+  backdrop-filter: var(--backdrop-blur);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-dark);
+  animation: fadeIn 1s ease-in-out;
+}
+
+h1 {
+  font-weight: 600;
+  color: var(--text-primary);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.btn {
+  border-radius: 50px;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-light);
+  border-color: var(--accent-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn-secondary {
+  background-color: #6a1b9a;
+  border-color: #6a1b9a;
+}
+
+.btn-secondary:hover {
+  background-color: #8e24aa;
+  border-color: #8e24aa;
+}
+
+.form-control {
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-dark);
+  color: var(--text-light);
+  transition: all 0.3s ease;
+}
+
+.form-control::placeholder {
+  color: var(--text-secondary);
+}
+
+.form-control:focus {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 0.25rem rgba(142, 36, 170, 0.25);
+  border-color: var(--accent-color);
+}
+
+.weather-container {
+  margin-top: 2rem;
+}
+
+.city-card {
+  padding: 2rem;
+  border-radius: 15px;
+  background: var(--card-dark);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-dark);
+  margin-bottom: 1.5rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.city-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+
+.city-card h4 {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.city-card h5 {
+  color: var(--text-light);
+}
+
+.dashboard-scrollbar {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 15px;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--accent-color);
+  border-radius: 10px;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.alert {
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.alert-danger {
+  background-color: rgba(220, 53, 69, 0.1);
+  border-color: rgba(220, 53, 69, 0.3);
+  color: #dc3545;
+}
+
+.alert-warning {
+  background-color: rgba(255, 193, 7, 0.1);
+  border-color: rgba(255, 193, 7, 0.3);
+  color: #ffc107;
+}
+
+.alert-success {
+  background-color: rgba(40, 167, 69, 0.1);
+  border-color: rgba(40, 167, 69, 0.3);
+  color: #28a745;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.toggle-btn {
+  animation: pulse 2s infinite;
+}
+   
+  </style>
+</head>
+<body>
+  <div id="weatherAnimation" class="weather-anim" data-weather="default" aria-hidden="true">
+    <div class="layer layer-default"></div>
+    <div class="layer layer-clear">
+      <div class="ray"></div><div class="ray"></div><div class="ray"></div><div class="ray"></div><div class="ray"></div><div class="ray"></div><div class="ray"></div><div class="ray"></div>
+      <div class="sun"></div>
+    </div>
+    <div class="layer layer-clouds">
+      <div class="cloud cloud1"></div><div class="cloud cloud2"></div><div class="cloud cloud3"></div><div class="cloud cloud4"></div><div class="cloud cloud5"></div>
+    </div>
+    <div class="layer layer-rain" id="rainLayer"></div>
+    <div class="layer layer-storm" id="stormLayer"><div class="lightning"></div></div>
+    <div class="layer layer-snow" id="snowLayer"></div>
+    <div class="layer layer-fog"></div>
+  </div>
+  <div class="container">
+    <div class="text-center mt-4">
+      <h1 class="fw-bold text-primary">🌦️ Weather Dashboard</h1>
+      <button class="btn btn-secondary toggle-btn" onclick="toggleView()">Toggle View</button>
+    </div>
+
+    <!-- Weather Search Section -->
+    <div id="searchSection" class="weather-container">
+      <form id="weatherForm" class="d-flex mb-3">
+        <input type="text" class="form-control me-2" id="cityInput" placeholder="Enter city" required />
+        <button type="submit" class="btn btn-primary">Get Weather</button>
+      </form>
+      <div id="weatherResult" class="text-center"></div>
+
+      <!-- 5-day forecast -->
+      <div class="city-card mt-4" id="forecastCard" style="display: none;">
+        <h5 class="text-primary mb-3">📅 5-Day Forecast</h5>
+        <div id="forecastList" class="row g-2"></div>
+      </div>
+
+      <div class="row mt-4">
+        <div class="col-md-6 mb-4">
+          <div class="city-card" style="min-height: 260px;">
+            <h5 class="text-primary mb-3">Temperature History (city)</h5>
+            <div style="height: 200px;">
+              <canvas id="tempChart"></canvas>
+            </div>
+            <p class="text-secondary small mb-0" id="chartHint">
+              Search a city and save weather entries to see its temperature trend over time.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-6 mb-4">
+          <div class="city-card" style="min-height: 260px;">
+            <h5 class="text-primary mb-3">Multi-City Comparison</h5>
+            <div style="height: 200px;">
+              <canvas id="compareChart"></canvas>
+            </div>
+            <p class="text-secondary small mb-0" id="compareHint">
+              Save weather for multiple cities to compare temperatures here.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12">
+          <div class="city-card">
+            <h5 class="text-primary mb-3">Overall Stats</h5>
+            <div id="summaryStats" class="small text-secondary">
+              No data yet. Save some weather records to see summary stats.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saved Weather Records Section -->
+    <div id="dashboardSection" class="weather-container" style="display:none">
+      <h3 class="fw-bold text-primary mb-3">📋 Saved Weather Records</h3>
+      <div class="dashboard-scrollbar" id="savedRecords"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>
+    
+    const form = document.getElementById('weatherForm');
+    const cityInput = document.getElementById('cityInput');
+    const weatherResult = document.getElementById('weatherResult');
+    const savedRecords = document.getElementById('savedRecords');
+    const searchSection = document.getElementById('searchSection');
+    const dashboardSection = document.getElementById('dashboardSection');
+
+    let tempChart = null;
+    let compareChart = null;
+
+    function toggleView() {
+      if (searchSection.style.display === 'none') {
+        searchSection.style.display = 'block';
+        dashboardSection.style.display = 'none';
+      } else {
+        searchSection.style.display = 'none';
+        dashboardSection.style.display = 'block';
+        fetchSavedWeather();
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const city = cityInput.value.trim();
+      if (!city) return;
+
+      try {
+        // Updated route to match routes.js: GET /weather/:city
+        const res = await fetch(`/weather/${city}`);
+        const data = await res.json();
+
+        if (data.error) {
+          weatherResult.innerHTML = `<div class="alert alert-danger">❌ ${data.error}</div>`;
+          setWeatherAnimation('default');
+        } else {
+          const temp = data.main.temp;
+          const condition = data.weather[0].main;
+          setWeatherAnimation(condition);
+
+          weatherResult.innerHTML = `
+            <div class="city-card text-center">
+              <h4>🌍 ${city.toUpperCase()}</h4>
+              <h5>🌡️ ${temp}°C</h5>
+              <p>🌤️ ${condition}</p>
+              <button onclick="saveWeather('${city}', ${temp}, '${condition}')" class="btn btn-success mt-2">Save Weather</button>
+            </div>`;
+
+          loadHistoryAndChart(city);
+          loadForecast(city);
+        }
+      } catch (err) {
+        weatherResult.innerHTML = `<div class="alert alert-danger">❌ Server Error. Please check the city name and server status.</div>`;
+      }
+    });
+
+    function setWeatherAnimation(condition) {
+      const el = document.getElementById('weatherAnimation');
+      if (!el) return;
+      el.setAttribute('data-weather', condition || 'default');
+    }
+
+    (function initWeatherDrops() {
+      const rainLayer = document.getElementById('rainLayer');
+      const stormLayer = document.getElementById('stormLayer');
+      const snowLayer = document.getElementById('snowLayer');
+      if (rainLayer) {
+        for (let i = 0; i < 55; i++) {
+          const d = document.createElement('div');
+          d.className = 'rain-drop';
+          d.style.left = (i * 1.8 + (i % 5) * 3) % 100 + '%';
+          d.style.animationDelay = (i * 0.02) % 1 + 's';
+          rainLayer.appendChild(d);
+        }
+      }
+      if (stormLayer) {
+        const lightning = stormLayer.querySelector('.lightning');
+        for (let i = 0; i < 50; i++) {
+          const d = document.createElement('div');
+          d.className = 'rain-drop';
+          d.style.left = (i * 2 + (i % 7)) % 100 + '%';
+          d.style.animationDelay = (i * 0.015) % 0.8 + 's';
+          stormLayer.insertBefore(d, lightning);
+        }
+      }
+      if (snowLayer) {
+        for (let i = 0; i < 45; i++) {
+          const d = document.createElement('div');
+          d.className = 'snowflake';
+          d.style.left = (i * 2.2 + (i % 11)) % 100 + '%';
+          d.style.animationDelay = (i * 0.15) % 4 + 's';
+          d.style.animationDuration = (3 + (i % 5) * 0.3) + 's';
+          snowLayer.appendChild(d);
+        }
+      }
+    })();
+
+    async function saveWeather(city, temp, condition) {
+      try {
+        // Updated route to match routes.js: POST /api/weather
+        await fetch('/api/weather', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ city, temp, condition })
+        });
+        alert('✅ Weather saved!');
+      } catch {
+        alert('❌ Failed to save weather');
+      }
+    }
+
+    async function fetchSavedWeather() {
+      try {
+        const res = await fetch('/all');
+        const data = await res.json();
+
+        if (Array.isArray(data) && data.length > 0) {
+          savedRecords.innerHTML = data.map(entry => `
+            <div class="city-card">
+              📍 <strong>${entry.city}</strong><br>
+              🌡️ ${entry.temperature}°C<br>
+              🌤️ ${entry.description}<br>
+              🕒 ${new Date(entry.searchedAt).toLocaleString()}
+            </div>
+          `).join('');
+        } else {
+          savedRecords.innerHTML = `<div class="alert alert-warning">No records found.</div>`;
+        }
+
+        updateSummaryStats(data);
+        updateCompareChart(data);
+      } catch (err) {
+        savedRecords.innerHTML = `<div class="alert alert-danger">Failed to load records</div>`;
+      }
+    }
+
+    async function loadHistoryAndChart(city) {
+      try {
+        const res = await fetch('/all');
+        const data = await res.json();
+        updateTempChart(city, data);
+        updateCompareChart(data);
+        updateSummaryStats(data);
+      } catch (err) {
+        console.error('Failed to load history for charts', err);
+      }
+    }
+
+    async function loadForecast(city) {
+      const card = document.getElementById('forecastCard');
+      const list = document.getElementById('forecastList');
+      if (!card || !list) return;
+      try {
+        const res = await fetch(`/forecast/${encodeURIComponent(city)}`);
+        const data = await res.json();
+        if (data.error || !data.list) {
+          card.style.display = 'none';
+          return;
+        }
+        const byDay = {};
+        data.list.forEach(item => {
+          const d = new Date(item.dt * 1000);
+          const key = d.toDateString();
+          if (!byDay[key]) byDay[key] = { min: item.main.temp_min, max: item.main.temp_max, icon: item.weather[0].main, date: d };
+          else {
+            byDay[key].min = Math.min(byDay[key].min, item.main.temp_min);
+            byDay[key].max = Math.max(byDay[key].max, item.main.temp_max);
+          }
+        });
+        const days = Object.keys(byDay).slice(0, 5);
+        list.innerHTML = days.map(key => {
+          const day = byDay[key];
+          const dayName = day.date.toLocaleDateString('en-US', { weekday: 'short' });
+          return `
+            <div class="col">
+              <div class="city-card text-center py-2 px-2 small">
+                <strong>${dayName}</strong><br>
+                ${day.icon}<br>
+                ${Math.round(day.min)}° / ${Math.round(day.max)}°C
+              </div>
+            </div>
+          `;
+        }).join('');
+        card.style.display = 'block';
+      } catch (err) {
+        card.style.display = 'none';
+      }
+    }
+
+    function updateTempChart(city, allRecords) {
+      const chartCanvas = document.getElementById('tempChart');
+      const chartHint = document.getElementById('chartHint');
+      if (!chartCanvas || !Array.isArray(allRecords)) return;
+
+      const cityRecords = allRecords
+        .filter(entry => entry.city && entry.city.toLowerCase() === city.toLowerCase())
+        .sort((a, b) => new Date(a.searchedAt) - new Date(b.searchedAt));
+
+      if (!cityRecords.length) {
+        if (tempChart) {
+          tempChart.destroy();
+          tempChart = null;
+        }
+        if (chartHint) {
+          chartHint.textContent = 'No saved history for this city yet. Save a few searches to see the trend.';
+        }
+        return;
+      }
+
+      const labels = cityRecords.map(entry => new Date(entry.searchedAt).toLocaleString());
+      const temps = cityRecords.map(entry => entry.temperature);
+
+      const ctx = chartCanvas.getContext('2d');
+      if (tempChart) {
+        tempChart.destroy();
+      }
+
+      tempChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: `${city.toUpperCase()} temperature (°C)`,
+            data: temps,
+            borderColor: '#ab47bc',
+            backgroundColor: 'rgba(171, 71, 188, 0.25)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 3,
+            pointBackgroundColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#e0e0e0'
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#bdbdbd' },
+              grid: { color: 'rgba(255,255,255,0.05)' }
+            },
+            y: {
+              ticks: { color: '#bdbdbd' },
+              grid: { color: 'rgba(255,255,255,0.05)' }
+            }
+          }
+        }
+      });
+
+      if (chartHint) {
+        chartHint.textContent = 'Showing temperature history from your saved records for this city.';
+      }
+    }
+
+    function updateCompareChart(allRecords) {
+      const canvas = document.getElementById('compareChart');
+      const hint = document.getElementById('compareHint');
+      if (!canvas || !window.Chart) return;
+      if (!Array.isArray(allRecords) || allRecords.length === 0) {
+        if (compareChart) { compareChart.destroy(); compareChart = null; }
+        if (hint) hint.textContent = 'Save weather for multiple cities to compare temperatures here.';
+        return;
+      }
+      const byCity = {};
+      allRecords.forEach(entry => {
+        const c = (entry.city || '').trim();
+        if (!c) return;
+        if (!byCity[c]) byCity[c] = [];
+        byCity[c].push(entry.temperature);
+      });
+      const cities = Object.keys(byCity);
+      if (cities.length === 0) {
+        if (compareChart) { compareChart.destroy(); compareChart = null; }
+        return;
+      }
+      const avgTemps = cities.map(c => {
+        const arr = byCity[c];
+        return Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10;
+      });
+      const colors = ['#ab47bc', '#7e57c2', '#5c6bc0', '#42a5f5', '#26a69a', '#66bb6a', '#ffa726'];
+      const ctx = canvas.getContext('2d');
+      if (compareChart) compareChart.destroy();
+      compareChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: cities.map(c => c.toUpperCase()),
+          datasets: [{
+            label: 'Avg temp (°C)',
+            data: avgTemps,
+            backgroundColor: cities.map((_, i) => colors[i % colors.length]),
+            borderColor: '#e0e0e0',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (ctx) => ctx.parsed.y + '°C' } }
+          },
+          scales: {
+            x: { ticks: { color: '#bdbdbd', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            y: { ticks: { color: '#bdbdbd' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+          }
+        }
+      });
+      if (hint) hint.textContent = 'Comparing average temperature across your saved cities.';
+    }
+
+    function updateSummaryStats(allRecords) {
+      const summaryEl = document.getElementById('summaryStats');
+      if (!summaryEl || !Array.isArray(allRecords) || allRecords.length === 0) {
+        if (summaryEl) {
+          summaryEl.textContent = 'No data yet. Save some weather records to see summary stats.';
+        }
+        return;
+      }
+
+      const total = allRecords.length;
+      const sumTemp = allRecords.reduce((sum, entry) => sum + (entry.temperature || 0), 0);
+      const avgTemp = (sumTemp / total).toFixed(1);
+
+      const hottest = allRecords.reduce((max, entry) =>
+        entry.temperature > max.temperature ? entry : max, allRecords[0]);
+      const coldest = allRecords.reduce((min, entry) =>
+        entry.temperature < min.temperature ? entry : min, allRecords[0]);
+
+      summaryEl.innerHTML = `
+        <p class="mb-1">Total records: <strong>${total}</strong></p>
+        <p class="mb-1">Average temperature: <strong>${avgTemp}°C</strong></p>
+        <p class="mb-1">Hottest: <strong>${hottest.city}</strong> (${hottest.temperature}°C)</p>
+        <p class="mb-0">Coldest: <strong>${coldest.city}</strong> (${coldest.temperature}°C)</p>
+      `;
+    }
+
+  </script>
+</body>
+</html>
